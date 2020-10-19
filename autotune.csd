@@ -6,11 +6,10 @@
 
 sr = 44100
 ksmps = 32
-nchnls = 2
+nchnls = 4
 
 massign 0, 0 ; Disable default MIDI assignments.
 massign 1, 2 ; Assign MIDI channel 1 to instr 2.
-zakinit 2, 1 ; Create 2 a-rate zak channels and 1 k-rate zak channel.
 
 opcode  PitchShifter, a, akkii
          setksmps  1                   ; kr=sr
@@ -64,7 +63,7 @@ kratio = ktarget/kfr
 kratioport port kratio, ism, ibase
 fauto pvscale fsig, kratioport ; transpose it (optional param: formants)
 aout pvsynth fauto
-xout aout, ktarget
+xout aout, (kratioport*kfr)
 endop
 
 
@@ -82,7 +81,7 @@ input                                                           */
 
 opcode Autotune, ak, aiiio
 
-iwinsize = 512
+iwinsize = 1024
 ibase = 440
 ibasemidi = 69
 
@@ -130,41 +129,45 @@ kratioport port kratio, ism, ibase
 
 aout PitchShifter asig,kratioport,0,0.1,5 
 
-       xout     aout, ktarget
+       xout     aout, (kratioport*kfr)
 endop
 
 
 instr 1
-interv1 = 2^(5/12)
-
-ainl 	inch 1
-ainr 	inch 2   
-gaoutl, gkfrequency 	AutotunePV ainl, 0.0001, 1, 3 ,  1  
-	zawm gaoutl, 1
+gaClean	inch 1
+ 
+; Autotune the input signal and store the result and its 
+; target frequency in global buffers
+gaTuned, gkFrequency AutotunePV, gaClean, 0.001, 1, 3
 
 endin
 
 instr 2
-iCps    cpsmidi   ;get the frequency from the key pressed
-iAmp    ampmidi   0dbfs * 0.3 ;get the amplitude
-kratio = iCps/gkfrequency
+; Get the frequency and amplitude from the midi-key
+iCps    	cpsmidi   
+iAmp    	ampmidi   0dbfs * 0.5 
 
-aout PitchShifter gaoutl,kratio,0,0.1,5
+; Calculate the ratio between the midi-note and the tuned note
+; and shift the tuned audio it by that ratio
+kRatio = iCps/gkFrequency
+aHarmony 	PitchShifter gaTuned, kRatio, 0, 0.1, 5 
 
-; aOut    poscil    iAmp, iCps ;generate a sine tone
-	 zawm aout, 2
+; Add this pitch to the harmonies buffer
+gaHarmonies += aHarmony
+
 endin
 
-; Effects instrument.  Always-on and score activated.
-instr 4
-    a2 zar 1      ; Read autotune
-    a3 zar 2      ; Read midi harmonizer
-    denorm a2, a3 ; Prevent CPU spikes on Intel processors.
-     
-    aMix = a3 + a2
-    outch 1, aMix, 2, aMix
 
-    zacl 0, 2  ; Clear audio channels to prevent audio build-up.
+instr 99
+	; Prevent CPU spikes on Intel processors.
+	denorm gaClean, gaTuned, gaHarmonies 
+	outch 1, gaClean, 2, gaTuned, 3, gaHarmonies
+
+; Clear globals to avoid buildup
+gaClean = 0
+gaTuned = 0
+gaHarmonies = 0
+
 endin
 </CsInstruments>
 <CsScore>
@@ -173,8 +176,8 @@ f3 0 8 -2 0 2 4 5 7 9 11 12
 f4 0 8 -2 0 2 3 5 7 8 10 12
 f5 0 16384 20 1
 
-i1 0 86400
-i4 0 3600 ; Activate the Reverb/Flanger always-on instrument.
+i1  0 86400
+i99 0 86400 ; Activate the Reverb/Flanger always-on instrument.
 e
 
 </CsScore>
