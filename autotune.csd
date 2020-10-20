@@ -34,7 +34,7 @@ ibase = 440
 ibasemidi = 69
 asig,ism,itrans,ifn xin
 fsig pvsanal asig, ifftsize, ifftsize / 4, ifftsize, iwtype;
-kfr, kamp pitchamdf asig, 130, 1040
+kfr, kamp pitchamdf asig, 130, 1500
 if (kfr > 10) kgoto ok
 kfr = 440
 ok:
@@ -67,72 +67,6 @@ xout aout, (kratioport*kfr)
 endop
 
 
-
-/**** autotune  ***********************************/
-/* aout Autotune asig,ism,ikey,ifn[,imeth]           */
-/* asig -  
-input                                                           */
-/* ism - smoothing time in secs                            */
-/* ikey - key (0 = C,... ,11 = B                       */
-/* ifn - table containing scale pitch classes (7)  */
-/* imeth - pitch track method: 0 - pitch (default) */
-/*         1 - ptrack, 2 - pitchamdf                              */
-/***************************************************/
-
-opcode Autotune, ak, aiiio
-
-iwinsize = 1024
-ibase = 440
-ibasemidi = 69
-
-asig,ism,itrans,ifn,im  xin
-
-if im == 0 then
-kfr, kamp pitch asig,0.01,6.00,9.00,0
-kfr = cpsoct(kfr)
-elseif im == 1 then
-kfr, kamp ptrack asig, 512
-else
-kfr, kamp pitchamdf asig,130,1500
-endif
-
-if (kfr > 10) kgoto ok
-kfr = 440
-ok:
-
-ktemp = 12 * (log(kfr / ibase) / log(2)) + ibasemidi
-ktet = round(ktemp)
-
-kpos init 0
-itrans = 2
-test:
-knote table kpos, ifn     ; get a pitch class from table
-ktest = ktet % 12       ;  note mod 12
-knote = (knote+itrans) % 12 ; plus transpose interval mod 12
-if ktest == knote kgoto next ; test if note matches pitch class +  transposition
-kpos = kpos + 1           ; increment table pos
-if kpos >= 7  kgoto shift ; if more than or pitch class set we need to  shift it
-kgoto test                ; loop back
-
-shift:
-if (ktemp >= ktet) kgoto plus
-ktet = ktet - 1
-kgoto next
-plus:
-ktet = ktet + 1
-
-next:
-kpos = 0
-ktarget = ibase * (2 ^ ((ktet - ibasemidi) / 12))
-kratio = ktarget/kfr
-kratioport port kratio, ism, ibase
-
-aout PitchShifter asig,kratioport, 0, 0.1, 5 
-
-       xout     aout, (kratioport*kfr)
-endop
-
-
 instr 1
 
 gaClean	inch 1
@@ -152,7 +86,9 @@ iAmp    	ampmidi   0dbfs * 0.5
 ; and shift the tuned audio it by that ratio
 kRatio =      iCps/gkFrequency
 aHarmony 	PitchShifter gaTuned, kRatio, 0, 0.1, 5 
-iPan 	random 0, 1
+aHarmoni *= iAmp
+
+iPan 	random 0.25, 0.75
 
 aHarmonyL, aHarmonyR pan2 aHarmony, iPan
 
