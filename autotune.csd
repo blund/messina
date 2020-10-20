@@ -5,7 +5,7 @@
 <CsInstruments>
 
 sr = 44100
-; ksmps = 32
+ksmps = 32
 nchnls = 4
 
 massign 0, 0 ; Disable default MIDI assignments.
@@ -80,17 +80,18 @@ endin
 instr 2
 ; Get the frequency and amplitude from the midi-key
 iCps    	cpsmidi   
-iAmp    	ampmidi   0dbfs * 0.5 
+iAmp = 0.5 + 4*(ampmidi(0.125))
+
+kEnv     linsegr   0.001, 0.1, 1, 0.1, 0
 
 ; Calculate the ratio between the midi-note and the tuned note
 ; and shift the tuned audio it by that ratio
 kRatio =      iCps/gkFrequency
-aHarmony 	PitchShifter gaTuned, kRatio, 0, 0.1, 5 
-aHarmoni *= iAmp
+aHarmony = kEnv * iAmp * PitchShifter(gaTuned, kRatio, 0, 0.1, 5)
 
-iPan 	random 0.25, 0.75
-
-aHarmonyL, aHarmonyR pan2 aHarmony, iPan
+iPanRange = 0.25
+iPan = random(0.5-iPanRange, 0.5+iPanRange)
+aHarmonyL, aHarmonyR pan2 aHarmony, iPan, 1
 
 ; Add this pitch to the harmonies buffer
 gaHarmoniesL += aHarmonyL
