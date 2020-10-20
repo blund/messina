@@ -15,13 +15,13 @@ amix   =   atap1*afade + atap2*afade2  ; fade in/out the delay taps
 endop
 
 opcode AutotunePV, ak, aiii
-ifftsize = 1024
+ifftsize = 512
 iwtype = 1
 ibase = 440
 ibasemidi = 69
 asig,ism,itrans,ifn xin
-fsig pvsanal asig, ifftsize, ifftsize / 4, ifftsize, iwtype;
-kfr, kamp pitchamdf asig, 130, 1500
+fsig pvsanal asig, ifftsize, ifftsize / 8, ifftsize, iwtype;
+kfr, kamp pitchamdf asig, 130, 1100
 if (kfr > 10) kgoto ok
 kfr = 440
 ok:
@@ -48,7 +48,7 @@ kpos = 0
 ktarget = ibase * (2 ^ ((kmidi - ibasemidi) / 12))
 kratio = ktarget/kfr
 kratioport port kratio, ism, ibase
-fauto pvscale fsig, kratioport ; transpose it (optional param: formants)
+fauto pvscale fsig, kratioport
 aout pvsynth fauto
-xout aout, (kratioport*kfr)
+xout aout, ktarget
 endop

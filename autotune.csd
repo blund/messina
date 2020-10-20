@@ -7,7 +7,7 @@
 #include "udo.txt"
 
 sr = 44100
-ksmps = 32
+ksmps = 16
 nchnls = 4
 
 chn_k "formant", 1
@@ -18,9 +18,10 @@ massign 1, 3 ; Assign MIDI channel 1 to instr 2.
 
 
 instr 1
-kFormant chnget "formant"
-gkFormantEnable chnget "formantEnable"
+kFormant chnget "formant" 
 gkFormant portk kFormant, 0.01
+gkFormantEnable chnget "formantEnable"
+
 endin
 
 instr 2
@@ -29,26 +30,25 @@ gaClean	inch 1
 
 ; Autotune the input signal and store the result and its 
 ; target frequency in global buffers
-aTuned, gkFrequency AutotunePV, gaClean, 0.0001, 1, 3
-
-ifftsize = 1024
-iwtype = 1
-fsig pvsanal aTuned, ifftsize, ifftsize / 4, ifftsize, iwtype;
-
+aTuned, gkFrequency AutotunePV, gaClean, 0.01, 1, 3
 
 if gkFormantEnable == 1 then
-
+	ifftsize = 1024
+	iwtype = 1
+	fsig pvsanal aTuned, ifftsize, ifftsize / 8, ifftsize, iwtype;
 	if gkFormant == 0 then
 	gkFormant = 1
 	endif
 
 	fresult = pvscale(pvscale(fsig, 1/gkFormant, 1), gkFormant, 0)
+	aTuned pvsynth fresult
 
 else
 	fresult = fsig
 endif
 
-gaTuned pvsynth fresult
+gaTuned = aTuned
+
 endin
 
 instr 3
