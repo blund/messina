@@ -10,20 +10,48 @@ sr = 44100
 ksmps = 32
 nchnls = 4
 
+chn_k "formant", 1
+chn_k "formantEnable", 1
+
 massign 0, 0 ; Disable default MIDI assignments.
-massign 1, 2 ; Assign MIDI channel 1 to instr 2.
+massign 1, 3 ; Assign MIDI channel 1 to instr 2.
+
 
 instr 1
+kFormant chnget "formant"
+gkFormantEnable chnget "formantEnable"
+gkFormant portk kFormant, 0.01
+endin
+
+instr 2
 
 gaClean	inch 1
 
 ; Autotune the input signal and store the result and its 
 ; target frequency in global buffers
-gaTuned, gkFrequency AutotunePV, gaClean, 0.0001, 1, 3
+aTuned, gkFrequency AutotunePV, gaClean, 0.0001, 1, 3
 
+ifftsize = 1024
+iwtype = 1
+fsig pvsanal aTuned, ifftsize, ifftsize / 4, ifftsize, iwtype;
+
+
+if gkFormantEnable == 1 then
+
+	if gkFormant == 0 then
+	gkFormant = 1
+	endif
+
+	fresult = pvscale(pvscale(fsig, 1/gkFormant, 1), gkFormant, 0)
+
+else
+	fresult = fsig
+endif
+
+gaTuned pvsynth fresult
 endin
 
-instr 2
+instr 3
 ; Get the frequency and amplitude from the midi-key
 iCps    	cpsmidi   
 iAmp = 0.5 + 4*(ampmidi(0.125))
@@ -48,7 +76,7 @@ endin
 
 instr 99
 	; Prevent CPU spikes on Intel processors.
-	denorm gaClean, gaTuned, gaHarmoniesL, gaHarmoniesR 
+	denorm gaClean, gaTuned, gaHarmoniesL, gaHarmoniesR
 	outch 1, gaClean, 2, gaTuned, 3, gaHarmoniesL, 4, gaHarmoniesR
 
 ; Clear globals to avoid buildup
@@ -57,6 +85,8 @@ gaTuned = 0
 gaHarmoniesL = 0
 gaHarmoniesR = 0
 endin
+
+
 </CsInstruments>
 <CsScore>
 
@@ -65,6 +95,7 @@ f4 0 8 -2 0 2 3 5 7 8 10 12
 f5 0 16384 20 1
 
 i1  0 86400
+i2  0 86400
 i99 0 86400 ; Activate the Reverb/Flanger always-on instrument.
 e
 
