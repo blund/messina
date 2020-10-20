@@ -5,7 +5,7 @@
 <CsInstruments>
 
 sr = 44100
-ksmps = 32
+; ksmps = 32
 nchnls = 4
 
 massign 0, 0 ; Disable default MIDI assignments.
@@ -127,18 +127,19 @@ ktarget = ibase * (2 ^ ((ktet - ibasemidi) / 12))
 kratio = ktarget/kfr
 kratioport port kratio, ism, ibase
 
-aout PitchShifter asig,kratioport,0,0.1,5 
+aout PitchShifter asig,kratioport, 0, 0.1, 5 
 
        xout     aout, (kratioport*kfr)
 endop
 
 
 instr 1
+
 gaClean	inch 1
- 
+
 ; Autotune the input signal and store the result and its 
 ; target frequency in global buffers
-gaTuned, gkFrequency AutotunePV, gaClean, 0.001, 1, 3
+gaTuned, gkFrequency AutotunePV, gaClean, 0.0001, 1, 3
 
 endin
 
@@ -149,25 +150,29 @@ iAmp    	ampmidi   0dbfs * 0.5
 
 ; Calculate the ratio between the midi-note and the tuned note
 ; and shift the tuned audio it by that ratio
-kRatio = iCps/gkFrequency
+kRatio =      iCps/gkFrequency
 aHarmony 	PitchShifter gaTuned, kRatio, 0, 0.1, 5 
+iPan 	random 0, 1
+
+aHarmonyL, aHarmonyR pan2 aHarmony, iPan
 
 ; Add this pitch to the harmonies buffer
-gaHarmonies += aHarmony
+gaHarmoniesL += aHarmonyL
+gaHarmoniesR += aHarmonyR
 
 endin
 
 
 instr 99
 	; Prevent CPU spikes on Intel processors.
-	denorm gaClean, gaTuned, gaHarmonies 
-	outch 1, gaClean, 2, gaTuned, 3, gaHarmonies
+	denorm gaClean, gaTuned, gaHarmoniesL, gaHarmoniesR 
+	outch 1, gaClean, 2, gaTuned, 3, gaHarmoniesL, 4, gaHarmoniesR
 
 ; Clear globals to avoid buildup
 gaClean = 0
 gaTuned = 0
-gaHarmonies = 0
-
+gaHarmoniesL = 0
+gaHarmoniesR = 0
 endin
 </CsInstruments>
 <CsScore>
