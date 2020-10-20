@@ -4,68 +4,14 @@
 </CsOptions>
 <CsInstruments>
 
+#include "udo.txt"
+
 sr = 44100
 ksmps = 32
 nchnls = 4
 
 massign 0, 0 ; Disable default MIDI assignments.
 massign 1, 2 ; Assign MIDI channel 1 to instr 2.
-
-opcode  PitchShifter, a, akkii
-         setksmps  1                   ; kr=sr
-asig,kpitch,kfdb,idel,iwin  xin
-kdelrate = (kpitch-1)/idel
-avdel   phasor -kdelrate               ; 1 to 0
-avdel2  phasor -kdelrate, 0.5          ; 1/2 buffer offset
-afade  tablei avdel, iwin, 1, 0, 1     ; crossfade windows
-afade2 tablei avdel2,iwin, 1, 0, 1
-adump  delayr idel
-atap1  deltapi avdel*idel           ; variable delay taps
-atap2  deltapi avdel2*idel
-amix   =   atap1*afade + atap2*afade2  ; fade in/out the delay taps
-        delayw  asig+amix*kfdb          ; in+feedback signals
-        xout  amix
-endop
-
-opcode AutotunePV, ak, aiii
-ifftsize = 1024
-iwtype = 1
-ibase = 440
-ibasemidi = 69
-asig,ism,itrans,ifn xin
-fsig pvsanal asig, ifftsize, ifftsize / 4, ifftsize, iwtype;
-kfr, kamp pitchamdf asig, 130, 1500
-if (kfr > 10) kgoto ok
-kfr = 440
-ok:
-ktemp = 12 * (log(kfr / ibase) / log(2)) + ibasemidi
-kmidi = round(ktemp)
-kpos init 0
-itrans = 2
-test:
-knote table kpos, ifn ; get a pitch class
-ktest = kmidi % 12 ; note mod 12
-knote = (knote+itrans) % 12
-if ktest == knote kgoto next ; test if note matches pitch class +  transposition
-kpos = kpos + 1 ; increment table pos
-if kpos >= 7 kgoto shift ; if more than or pitch class set we need to  shift it
-kgoto test ; loop back
-shift:
-if (ktemp >= kmidi) kgoto plus
-kmidi = kmidi - 1
-kgoto next
-plus:
-kmidi = kmidi + 1
-next:
-kpos = 0
-ktarget = ibase * (2 ^ ((kmidi - ibasemidi) / 12))
-kratio = ktarget/kfr
-kratioport port kratio, ism, ibase
-fauto pvscale fsig, kratioport ; transpose it (optional param: formants)
-aout pvsynth fauto
-xout aout, (kratioport*kfr)
-endop
-
 
 instr 1
 
