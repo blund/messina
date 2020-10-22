@@ -12,7 +12,7 @@ gi_pitch_table ftgen	5, 0, 16384, 20, 1
 gi_major_table ftgen 3, 0, 8, -2, 0, 2, 4, 5, 7, 9, 11, 12
 gi_minor_table ftgen 4, 0, 8, -2, 0, 2, 3, 5, 7, 8, 10, 12
 
-chn_k "formant", 1
+chn_k "formant",       1
 chn_k "formantEnable", 1
 
 massign 0, 0 ; Disable default MIDI assignments.
@@ -35,8 +35,7 @@ amix    = atap1*afade + atap2*afade2
 endop
 
 
-
-opcode AutotunePV, kk, aiii
+opcode AutotuneHelper, kk, aiii
 	setksmps  1
 
 ibase     = 440
@@ -88,7 +87,7 @@ kformant_enable chnget "formantEnable"
 
 ga_clean	 inch 1
 
-kratio, gk_main_freq AutotunePV, ga_clean, 0.01, 1, 3
+kratio, gk_main_freq AutotuneHelper, ga_clean, 0.01, 1, 3
 fsig pvsanal ga_clean, ifftsize, ioverlap, iwinsize, iwinshape
 
 if kformant_enable == 1 then
